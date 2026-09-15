@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Absensi KKPL</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: linear-gradient(160deg, #1e3a8a 0%, #2563eb 45%, #60a5fa 100%);
+  }
+
+  .card {
+    width: 100%;
+    max-width: 420px;
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 32px 28px;
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.35);
+  }
+
+  .card h1 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #1e293b;
+    text-align: center;
+    margin-bottom: 4px;
+  }
+
+  .card p.subtitle {
+    text-align: center;
+    color: #64748b;
+    font-size: 14px;
+    margin-bottom: 24px;
+  }
+
+  .field { margin-bottom: 18px; }
+
+  .field label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 6px;
+  }
+
+  .field input[type="text"],
+  .field select {
+    width: 100%;
+    padding: 12px 14px;
+    font-size: 15px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    color: #1e293b;
+    background: #f8fafc;
+    outline: none;
+    transition: border-color 0.15s ease;
+  }
+
+  .field input[type="text"]:focus,
+  .field select:focus {
+    border-color: #2563eb;
+    background: #ffffff;
+  }
+
+  .upload-box {
+    border: 2px dashed #cbd5e1;
+    border-radius: 12px;
+    padding: 28px 16px;
+    text-align: center;
+    cursor: pointer;
+    background: #f8fafc;
+    transition: border-color 0.15s ease, background 0.15s ease;
+    position: relative;
+  }
+
+  .upload-box:hover,
+  .upload-box.dragover {
+    border-color: #7c3aed;
+    background: #f5f3ff;
+  }
+
+  .upload-box .camera-icon {
+    font-size: 30px;
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  .upload-box .upload-text {
+    font-size: 14px;
+    color: #64748b;
+  }
+
+  .upload-box .upload-text strong {
+    color: #7c3aed;
+  }
+
+  .upload-box input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  .preview-img {
+    display: none;
+    max-width: 100%;
+    max-height: 180px;
+    border-radius: 10px;
+    margin-top: 12px;
+    object-fit: cover;
+  }
+
+  .btn-submit {
+    width: 100%;
+    padding: 14px;
+    margin-top: 6px;
+    border: none;
+    border-radius: 12px;
+    background: #7c3aed;
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.1s ease;
+  }
+
+  .btn-submit:hover { background: #6d28d9; }
+  .btn-submit:active { transform: scale(0.98); }
+  .btn-submit:disabled {
+    background: #c4b5fd;
+    cursor: not-allowed;
+  }
+
+  .status-msg {
+    margin-top: 14px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    text-align: center;
+    display: none;
+  }
+
+  .status-msg.success {
+    display: block;
+    background: #dcfce7;
+    color: #166534;
+  }
+
+  .status-msg.error {
+    display: block;
+    background: #fee2e2;
+    color: #991b1b;
+  }
+
+  @media (max-width: 400px) {
+    .card { padding: 26px 20px; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="card">
+    <h1>📋 Absensi KKPL</h1>
+    <p class="subtitle">Kuliah Kerja Praktik Lapangan</p>
+
+    <form id="formAbsensi">
+      <div class="field">
+        <label for="nama">Nama Lengkap</label>
+        <input type="text" id="nama" name="nama" placeholder="Masukkan nama lengkap" required>
+      </div>
+
+      <div class="field">
+        <label for="nim">NIM</label>
+        <input type="text" id="nim" name="nim" placeholder="Masukkan NIM" required>
+      </div>
+
+      <div class="field">
+        <label for="prodi">Program Studi</label>
+        <select id="prodi" name="prodi" required>
+          <option value="" disabled selected>Pilih program studi</option>
+          <option value="PAI">PAI</option>
+          <option value="ES">ES</option>
+          <option value="PGMI">PGMI</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Bukti Kehadiran</label>
+        <div class="upload-box" id="uploadBox">
+          <span class="camera-icon">📷</span>
+          <span class="upload-text"><strong>Tap untuk ambil/upload foto</strong><br>JPG atau PNG</span>
+          <input type="file" id="foto" name="foto" accept="image/*" capture="environment" required>
+        </div>
+        <img id="previewImg" class="preview-img" alt="Preview foto">
+      </div>
+
+      <button type="submit" class="btn-submit" id="btnSubmit">Kirim Absensi</button>
+
+      <div class="status-msg" id="statusMsg"></div>
+    </form>
+  </div>
+
+<script>
+  // ⚠️ GANTI dengan URL Web App hasil deploy Apps Script Anda (langkah di panduan)
+  const API_URL = 'https://script.google.com/macros/s/GANTI_DENGAN_ID_DEPLOYMENT/exec';
+
+  const form = document.getElementById('formAbsensi');
+  const fotoInput = document.getElementById('foto');
+  const previewImg = document.getElementById('previewImg');
+  const uploadBox = document.getElementById('uploadBox');
+  const btnSubmit = document.getElementById('btnSubmit');
+  const statusMsg = document.getElementById('statusMsg');
+
+  let fotoBase64 = '';
+  let fotoMime = '';
+  let fotoNamaFile = '';
+
+  // Tampilkan preview foto begitu dipilih, dan simpan base64-nya
+  fotoInput.addEventListener('change', function () {
+    const file = fotoInput.files[0];
+    if (!file) return;
+
+    fotoMime = file.type;
+    fotoNamaFile = file.name;
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      // Hasil FileReader berupa "data:image/jpeg;base64,XXXXX" — kita ambil bagian base64-nya saja
+      const fullResult = e.target.result;
+      fotoBase64 = fullResult.split(',')[1];
+
+      previewImg.src = fullResult;
+      previewImg.style.display = 'block';
+      uploadBox.style.borderColor = '#16a34a';
+    };
+    reader.readAsDataURL(file);
+  });
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    hideStatus();
+
+    const nama = document.getElementById('nama').value.trim();
+    const nim = document.getElementById('nim').value.trim();
+    const prodi = document.getElementById('prodi').value;
+
+    if (!nama || !nim || !prodi || !fotoBase64) {
+      showStatus('error', 'Mohon lengkapi semua field dan foto.');
+      return;
+    }
+
+    btnSubmit.disabled = true;
+    btnSubmit.textContent = 'Mengirim...';
+
+    const payload = {
+      nama: nama,
+      nim: nim,
+      prodi: prodi,
+      foto: fotoBase64,
+      mimeType: fotoMime,
+      namaFile: fotoNamaFile
+    };
+
+    // PENTING: gunakan Content-Type "text/plain" agar browser TIDAK mengirim
+    // preflight OPTIONS request (yang tidak didukung Apps Script). Ini kunci
+    // untuk menghindari error CORS.
+    fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (result) {
+        if (result.status === 'success') {
+          showStatus('success', '✅ ' + result.message);
+          form.reset();
+          previewImg.style.display = 'none';
+          uploadBox.style.borderColor = '#cbd5e1';
+          fotoBase64 = '';
+        } else {
+          showStatus('error', '❌ ' + result.message);
+        }
+      })
+      .catch(function (err) {
+        showStatus('error', '❌ Gagal mengirim data: ' + err.message);
+      })
+      .finally(function () {
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = 'Kirim Absensi';
+      });
+  });
+
+  function showStatus(type, msg) {
+    statusMsg.className = 'status-msg ' + type;
+    statusMsg.textContent = msg;
+  }
+
+  function hideStatus() {
+    statusMsg.className = 'status-msg';
+    statusMsg.textContent = '';
+  }
+</script>
+
+</body>
+</html>
