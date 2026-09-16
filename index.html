@@ -38,7 +38,7 @@
     text-align: center;
     color: #64748b;
     font-size: 14px;
-    margin-bottom: 24px;
+    margin-bottom: 22px;
   }
 
   .field { margin-bottom: 18px; }
@@ -68,6 +68,31 @@
   .field select:focus {
     border-color: #2563eb;
     background: #ffffff;
+  }
+
+  /* Toggle Absen Masuk / Pulang */
+  .tipe-toggle {
+    display: flex;
+    gap: 8px;
+  }
+
+  .tipe-btn {
+    flex: 1;
+    padding: 11px;
+    border-radius: 10px;
+    border: 1.5px solid #e2e8f0;
+    background: #f8fafc;
+    color: #64748b;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .tipe-btn.active {
+    background: #7c3aed;
+    border-color: #7c3aed;
+    color: #ffffff;
   }
 
   .upload-box {
@@ -117,6 +142,18 @@
     margin-top: 12px;
     object-fit: cover;
   }
+
+  .gps-status {
+    margin-top: 8px;
+    font-size: 12.5px;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .gps-status.ok { color: #16a34a; }
+  .gps-status.err { color: #dc2626; }
 
   .btn-submit {
     width: 100%;
@@ -173,6 +210,14 @@
 
     <form id="formAbsensi">
       <div class="field">
+        <label>Jenis Absensi</label>
+        <div class="tipe-toggle">
+          <button type="button" class="tipe-btn active" data-tipe="Masuk">🟢 Absen Masuk</button>
+          <button type="button" class="tipe-btn" data-tipe="Pulang">🔴 Absen Pulang</button>
+        </div>
+      </div>
+
+      <div class="field">
         <label for="nama">Nama Lengkap</label>
         <input type="text" id="nama" name="nama" placeholder="Masukkan nama lengkap" required>
       </div>
@@ -200,6 +245,7 @@
           <input type="file" id="foto" name="foto" accept="image/*" capture="environment" required>
         </div>
         <img id="previewImg" class="preview-img" alt="Preview foto">
+        <div class="gps-status" id="gpsStatus">📍 Lokasi akan diambil saat Anda menekan "Kirim Absensi"</div>
       </div>
 
       <button type="submit" class="btn-submit" id="btnSubmit">Kirim Absensi</button>
@@ -209,8 +255,8 @@
   </div>
 
 <script>
-  // ⚠️ GANTI dengan URL Web App hasil deploy Apps Script Anda (langkah di panduan)
-  const API_URL = 'https://script.google.com/macros/s/AKfycbyZMWuevG_PmsufO_-0e1d2sBgqcOwiRmn8FGYna6j0Wk7SzpT3F3SOhWRIH9np6ajM/exec';
+  // ⚠️ GANTI dengan URL Web App hasil deploy Apps Script Anda
+  const API_URL = 'https://script.google.com/macros/s/GANTI_DENGAN_ID_DEPLOYMENT/exec';
 
   const form = document.getElementById('formAbsensi');
   const fotoInput = document.getElementById('foto');
@@ -218,12 +264,24 @@
   const uploadBox = document.getElementById('uploadBox');
   const btnSubmit = document.getElementById('btnSubmit');
   const statusMsg = document.getElementById('statusMsg');
+  const gpsStatus = document.getElementById('gpsStatus');
+  const tipeButtons = document.querySelectorAll('.tipe-btn');
 
   let fotoBase64 = '';
   let fotoMime = '';
   let fotoNamaFile = '';
+  let selectedTipe = 'Masuk';
 
-  // Tampilkan preview foto begitu dipilih, dan simpan base64-nya
+  // Toggle Absen Masuk / Pulang
+  tipeButtons.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      tipeButtons.forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      selectedTipe = btn.getAttribute('data-tipe');
+    });
+  });
+
+  // Preview foto begitu dipilih
   fotoInput.addEventListener('change', function () {
     const file = fotoInput.files[0];
     if (!file) return;
@@ -233,10 +291,8 @@
 
     const reader = new FileReader();
     reader.onload = function (e) {
-      // Hasil FileReader berupa "data:image/jpeg;base64,XXXXX" — kita ambil bagian base64-nya saja
       const fullResult = e.target.result;
       fotoBase64 = fullResult.split(',')[1];
-
       previewImg.src = fullResult;
       previewImg.style.display = 'block';
       uploadBox.style.borderColor = '#16a34a';
@@ -244,7 +300,26 @@
     reader.readAsDataURL(file);
   });
 
-  form.addEventListener('submit', function (e) {
+  // Ambil lokasi GPS, dibungkus jadi Promise supaya bisa dipakai dengan async/await
+  function ambilLokasi() {
+    return new Promise(function (resolve, reject) {
+      if (!navigator.geolocation) {
+        reject(new Error('Browser tidak mendukung GPS.'));
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        function (pos) {
+          resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        },
+        function (err) {
+          reject(new Error('Gagal mendapatkan lokasi: ' + err.message + '. Pastikan izin lokasi diaktifkan.'));
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      );
+    });
+  }
+
+  form.addEventListener('submit', async function (e) {
     e.preventDefault();
     hideStatus();
 
@@ -258,20 +333,39 @@
     }
 
     btnSubmit.disabled = true;
+    btnSubmit.textContent = 'Mengambil lokasi...';
+    gpsStatus.className = 'gps-status';
+    gpsStatus.textContent = '📍 Mendapatkan lokasi GPS Anda...';
+
+    let lokasi;
+    try {
+      lokasi = await ambilLokasi();
+      gpsStatus.className = 'gps-status ok';
+      gpsStatus.textContent = '📍 Lokasi terdeteksi ✅';
+    } catch (errLokasi) {
+      gpsStatus.className = 'gps-status err';
+      gpsStatus.textContent = '📍 ' + errLokasi.message;
+      showStatus('error', 'Lokasi wajib aktif untuk mengirim absensi. Aktifkan izin lokasi lalu coba lagi.');
+      btnSubmit.disabled = false;
+      btnSubmit.textContent = 'Kirim Absensi';
+      return;
+    }
+
     btnSubmit.textContent = 'Mengirim...';
 
     const payload = {
       nama: nama,
       nim: nim,
       prodi: prodi,
+      tipe: selectedTipe,
       foto: fotoBase64,
       mimeType: fotoMime,
-      namaFile: fotoNamaFile
+      namaFile: fotoNamaFile,
+      lat: lokasi.lat,
+      lng: lokasi.lng
     };
 
-    // PENTING: gunakan Content-Type "text/plain" agar browser TIDAK mengirim
-    // preflight OPTIONS request (yang tidak didukung Apps Script). Ini kunci
-    // untuk menghindari error CORS.
+    // Content-Type "text/plain" supaya tidak memicu preflight CORS (lihat penjelasan sebelumnya)
     fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -285,6 +379,11 @@
           previewImg.style.display = 'none';
           uploadBox.style.borderColor = '#cbd5e1';
           fotoBase64 = '';
+          gpsStatus.className = 'gps-status';
+          gpsStatus.textContent = '📍 Lokasi akan diambil saat Anda menekan "Kirim Absensi"';
+          tipeButtons.forEach(function (b) { b.classList.remove('active'); });
+          tipeButtons[0].classList.add('active');
+          selectedTipe = 'Masuk';
         } else {
           showStatus('error', '❌ ' + result.message);
         }
